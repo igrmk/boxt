@@ -17,3 +17,5 @@ Commands
 * __mute__ _your_boxt_email_ — Mute specified boxt email address
 * __unmute__ _your_boxt_email_ — Unmute specified boxt email address
 * __feedback__ _text_ — Send feedback
+
+<a href="https://www.buymeacoffee.com/J3b15eI" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee"></a>
