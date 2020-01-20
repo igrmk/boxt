@@ -313,15 +313,22 @@ func (w *worker) unmute(chatID int64, address string) {
 	w.send(chatID, false, parseRaw, "OK")
 }
 
-func (w *worker) usersCount() int {
+func (w *worker) userCount() int {
 	query := w.db.QueryRow("select count(*) from users")
 	return singleInt(query)
 }
 
+func (w *worker) emailCount() int {
+	query := w.db.QueryRow("select sum(received) from addresses")
+	return singleInt(query)
+}
+
 func (w *worker) stat(chatID int64) {
-	usersCount := w.usersCount()
+	userCount := w.userCount()
+	emailCount := w.emailCount()
 	lines := []string{}
-	lines = append(lines, fmt.Sprintf("users: %d", usersCount))
+	lines = append(lines, fmt.Sprintf("users: %d", userCount))
+	lines = append(lines, fmt.Sprintf("emails: %d", emailCount))
 	w.send(chatID, false, parseRaw, strings.Join(lines, "\n"))
 }
 
