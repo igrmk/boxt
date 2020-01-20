@@ -253,6 +253,7 @@ func (w *worker) broadcast(text string) {
 	for _, chatID := range chats {
 		w.send(chatID, true, parseRaw, text)
 	}
+	w.send(w.cfg.AdminID, false, parseRaw, "OK")
 }
 
 func (w *worker) direct(arguments string) {
@@ -271,6 +272,7 @@ func (w *worker) direct(arguments string) {
 		return
 	}
 	w.send(whom, true, parseRaw, text)
+	w.send(w.cfg.AdminID, false, parseRaw, "OK")
 }
 
 func (w *worker) addUsername(arguments string) {
@@ -289,6 +291,7 @@ func (w *worker) addUsername(arguments string) {
 		return
 	}
 	w.mustExec("insert into addresses (chat_id, username) values (?,?)", chatID, username)
+	w.send(w.cfg.AdminID, false, parseRaw, "OK")
 }
 
 func (w *worker) processAdminMessage(chatID int64, command, arguments string) bool {
