@@ -13,7 +13,7 @@ Installation
 Commands
 --------
 
+* __addresses__ — Show your boxt addresses
 * __mute__ _your_boxt_email_ — Mute specified boxt email address
 * __unmute__ _your_boxt_email_ — Unmute specified boxt email address
 * __feedback__ — Send feedback
-* __addresses__ — Show your boxt addresses
