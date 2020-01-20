@@ -104,6 +104,7 @@ func (w *worker) received(e *env) {
 		address := w.addressForUsername(username)
 		if address != nil && !address.muted {
 			chatIDs[address.chatID] = true
+			w.mustExec("update addresses set received=received+1 where username=?", username)
 		}
 	}
 
@@ -193,7 +194,8 @@ func (w *worker) createDatabase() {
 		create table if not exists addresses (
 			chat_id integer,
 			username text not null default '',
-			muted integer not null default 0);`)
+			muted integer not null default 0,
+			received integer not null default 0);`)
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyz"
@@ -242,6 +244,8 @@ func (w *worker) processIncomingCommand(chatID int64, command, arguments string)
 		w.mute(chatID, arguments)
 	case "unmute":
 		w.unmute(chatID, arguments)
+	case "stat":
+		w.stat(chatID)
 	default:
 		w.send(chatID, false, parseRaw, "Unknown command")
 	}
@@ -286,7 +290,7 @@ func (w *worker) mute(chatID int64, address string) {
 		w.send(chatID, false, parseRaw, "Address not found")
 		return
 	}
-	w.mustExec("update addresses set muted=1 where chat_id=? and username=?", chatID, username)
+	w.mustExec("update addresses set muted=1 where username=?", username)
 	w.send(chatID, false, parseRaw, "OK")
 }
 
@@ -305,8 +309,20 @@ func (w *worker) unmute(chatID int64, address string) {
 		w.send(chatID, false, parseRaw, "Address not found")
 		return
 	}
-	w.mustExec("update addresses set muted=0 where chat_id=? and username=?", chatID, username)
+	w.mustExec("update addresses set muted=0 where username=?", username)
 	w.send(chatID, false, parseRaw, "OK")
+}
+
+func (w *worker) usersCount() int {
+	query := w.db.QueryRow("select count(*) from users")
+	return singleInt(query)
+}
+
+func (w *worker) stat(chatID int64) {
+	usersCount := w.usersCount()
+	lines := []string{}
+	lines = append(lines, fmt.Sprintf("users: %d", usersCount))
+	w.send(chatID, false, parseRaw, strings.Join(lines, "\n"))
 }
 
 func (w *worker) send(chatID int64, notify bool, parse parseKind, text string) {
