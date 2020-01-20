@@ -410,6 +410,7 @@ func (w *worker) addressesOfUser(chatID int64) (addresses []address) {
 }
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
 	w := newWorker()
 	w.logConfig()
 	w.setWebhook()
