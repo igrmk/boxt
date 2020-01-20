@@ -8,7 +8,7 @@ We create 10 email addresses for you. An email sent to any of these addresses wi
 Installation
 ------------
 
-* Just open this link in telegram https://t.me/BoxtBot
+Just open this link in telegram https://t.me/BoxtBot
 
 Commands
 --------
