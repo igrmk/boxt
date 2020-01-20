@@ -208,24 +208,22 @@ func randString(n int) string {
 
 func (w *worker) start(chatID int64) {
 	exists := w.db.QueryRow("select count(*) from users where chat_id=?", chatID)
-	if singleInt(exists) > 0 {
-		return
-	}
-
-	w.mustExec("insert into users (chat_id) values (?)", chatID)
-	for i := 0; i < w.cfg.FreeEmails; i++ {
-		username := ""
-		for {
-			username = randString(5)
-			exists := w.db.QueryRow("select count(*) from addresses where username=?", username)
-			if singleInt(exists) == 0 {
-				break
+	if singleInt(exists) == 0 {
+		w.mustExec("insert into users (chat_id) values (?)", chatID)
+		for i := 0; i < w.cfg.FreeEmails; i++ {
+			username := ""
+			for {
+				username = randString(5)
+				exists := w.db.QueryRow("select count(*) from addresses where username=?", username)
+				if singleInt(exists) == 0 {
+					break
+				}
 			}
+			w.mustExec("insert into addresses (chat_id, username) values (?,?)", chatID, username)
 		}
-		w.mustExec("insert into addresses (chat_id, username) values (?,?)", chatID, username)
 	}
 	lines := w.addressStrings(w.addressesOfUser(chatID))
-	lines = append([]string{"An email sent to any of these addresses will appear here"}, lines...)
+	lines = append([]string{"We created 10 email addreses for you. An email sent to any of these addresses will appear here in the chat"}, lines...)
 	w.send(chatID, false, parseRaw, strings.Join(lines, "\n"))
 }
 

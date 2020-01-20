@@ -1,2 +1,3 @@
-# Boxt
-Telegram bot providing you with email addresses
+# boxt
+
+We create 10 email addresses for you. An email sent to any of these addresses will appear in your telegram chat.
