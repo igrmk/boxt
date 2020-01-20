@@ -273,6 +273,24 @@ func (w *worker) direct(arguments string) {
 	w.send(whom, true, parseRaw, text)
 }
 
+func (w *worker) addUsername(arguments string) {
+	parts := strings.SplitN(arguments, " ", 2)
+	if len(parts) < 2 {
+		w.send(w.cfg.AdminID, false, parseRaw, "usage: /add_username chatID email")
+		return
+	}
+	chatID, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		w.send(w.cfg.AdminID, false, parseRaw, "first argument is invalid")
+		return
+	}
+	username := parts[1]
+	if username == "" {
+		return
+	}
+	w.mustExec("insert into addresses (chat_id, username) values (?,?)", chatID, username)
+}
+
 func (w *worker) processAdminMessage(chatID int64, command, arguments string) bool {
 	switch command {
 	case "stat":
@@ -283,6 +301,9 @@ func (w *worker) processAdminMessage(chatID int64, command, arguments string) bo
 		return true
 	case "direct":
 		w.direct(arguments)
+		return true
+	case "add_username":
+		w.addUsername(arguments)
 		return true
 	}
 	return false
