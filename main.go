@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -229,10 +230,70 @@ func (w *worker) start(chatID int64) {
 	w.send(chatID, false, parseRaw, strings.Join(lines, "\n"))
 }
 
+func (w *worker) broadcastChats() (chats []int64) {
+	chatsQuery, err := w.db.Query(`select chat_id from users`)
+	checkErr(err)
+	defer chatsQuery.Close()
+	for chatsQuery.Next() {
+		var chatID int64
+		checkErr(chatsQuery.Scan(&chatID))
+		chats = append(chats, chatID)
+	}
+	return
+}
+
+func (w *worker) broadcast(text string) {
+	if text == "" {
+		return
+	}
+	if w.cfg.Debug {
+		ldbg("broadcasting")
+	}
+	chats := w.broadcastChats()
+	for _, chatID := range chats {
+		w.send(chatID, true, parseRaw, text)
+	}
+}
+
+func (w *worker) direct(arguments string) {
+	parts := strings.SplitN(arguments, " ", 2)
+	if len(parts) < 2 {
+		w.send(w.cfg.AdminID, false, parseRaw, "usage: /direct chatID text")
+		return
+	}
+	whom, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		w.send(w.cfg.AdminID, false, parseRaw, "first argument is invalid")
+		return
+	}
+	text := parts[1]
+	if text == "" {
+		return
+	}
+	w.send(whom, true, parseRaw, text)
+}
+
+func (w *worker) processAdminMessage(chatID int64, command, arguments string) bool {
+	switch command {
+	case "stat":
+		w.stat()
+		return true
+	case "broadcast":
+		w.broadcast(arguments)
+		return true
+	case "direct":
+		w.direct(arguments)
+		return true
+	}
+	return false
+}
+
 func (w *worker) processIncomingCommand(chatID int64, command, arguments string) {
 	command = strings.ToLower(command)
 	linf("chat: %d, command: %s %s", chatID, command, arguments)
-
+	if chatID == w.cfg.AdminID && w.processAdminMessage(chatID, command, arguments) {
+		return
+	}
 	switch command {
 	case "addresses":
 		w.listAddresses(chatID)
@@ -244,8 +305,6 @@ func (w *worker) processIncomingCommand(chatID int64, command, arguments string)
 		w.mute(chatID, arguments)
 	case "unmute":
 		w.unmute(chatID, arguments)
-	case "stat":
-		w.stat(chatID)
 	default:
 		w.send(chatID, false, parseRaw, "Unknown command")
 	}
@@ -323,13 +382,13 @@ func (w *worker) emailCount() int {
 	return singleInt(query)
 }
 
-func (w *worker) stat(chatID int64) {
+func (w *worker) stat() {
 	userCount := w.userCount()
 	emailCount := w.emailCount()
 	lines := []string{}
 	lines = append(lines, fmt.Sprintf("users: %d", userCount))
 	lines = append(lines, fmt.Sprintf("emails: %d", emailCount))
-	w.send(chatID, false, parseRaw, strings.Join(lines, "\n"))
+	w.send(w.cfg.AdminID, false, parseRaw, strings.Join(lines, "\n"))
 }
 
 func (w *worker) send(chatID int64, notify bool, parse parseKind, text string) {
