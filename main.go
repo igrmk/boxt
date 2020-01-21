@@ -353,7 +353,7 @@ func (w *worker) feedback(chatID int64, text string) {
 		w.send(chatID, false, parseRaw, "Command format: /feedback <text>")
 		return
 	}
-	w.mustExec("insert into feedback (chat_id, text) values (?, ?, ?)", chatID, text)
+	w.mustExec("insert into feedback (chat_id, text) values (?, ?)", chatID, text)
 	w.send(chatID, false, parseRaw, "Thank you for your feedback")
 	w.send(w.cfg.AdminID, true, parseRaw, fmt.Sprintf("Feedback: %s", text))
 }
