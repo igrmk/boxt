@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -334,11 +335,32 @@ func (w *worker) processIncomingCommand(chatID int64, command, arguments string)
 	}
 }
 
+func (w *worker) ourID() int64 {
+	if idx := strings.Index(w.cfg.BotToken, ":"); idx != -1 {
+		id, err := strconv.ParseInt(w.cfg.BotToken[:idx], 10, 64)
+		checkErr(err)
+		return id
+	}
+	checkErr(errors.New("cannot get our ID"))
+	return 0
+}
+
 func (w *worker) processTGUpdate(u tg.Update) {
 	if u.Message != nil && u.Message.Chat != nil {
-		if u.Message.IsCommand() {
+		if newMembers := u.Message.NewChatMembers; newMembers != nil && len(*newMembers) > 0 {
+			ourID := w.ourID()
+			for _, m := range *newMembers {
+				if int64(m.ID) == ourID {
+					w.start(u.Message.Chat.ID)
+					break
+				}
+			}
+		} else if u.Message.IsCommand() {
 			w.processIncomingCommand(u.Message.Chat.ID, u.Message.Command(), u.Message.CommandArguments())
 		} else {
+			if u.Message.Text == "" {
+				return
+			}
 			parts := strings.SplitN(u.Message.Text, " ", 2)
 			for len(parts) < 2 {
 				parts = append(parts, "")
