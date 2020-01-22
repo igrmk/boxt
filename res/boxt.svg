@@ -9,16 +9,16 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="156.77011mm"
-   height="156.79427mm"
-   viewBox="0 0 156.7701 156.79427"
+   width="144.77011mm"
+   height="144.79427mm"
+   viewBox="0 0 144.7701 144.79427"
    version="1.1"
    id="svg8"
    inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
    sodipodi:docname="boxt.svg"
-   inkscape:export-filename="/home/igor/projects/boxt/res/boxt600x600.png"
-   inkscape:export-xdpi="97.197426"
-   inkscape:export-ydpi="97.197426">
+   inkscape:export-filename="/home/igor/projects/boxt/res/boxt192x192.png"
+   inkscape:export-xdpi="33.680893"
+   inkscape:export-ydpi="33.680893">
   <defs
      id="defs2" />
   <sodipodi:namedview
@@ -29,8 +29,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.49497475"
-     inkscape:cx="-344.98102"
-     inkscape:cy="177.42428"
+     inkscape:cx="-764.64814"
+     inkscape:cy="154.74707"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -39,10 +39,10 @@
      inkscape:window-x="50"
      inkscape:window-y="26"
      inkscape:window-maximized="1"
-     fit-margin-top="25.1"
-     fit-margin-left="26"
-     fit-margin-right="26"
-     fit-margin-bottom="25.1" />
+     fit-margin-top="19.1"
+     fit-margin-left="20"
+     fit-margin-right="20"
+     fit-margin-bottom="19.1" />
   <metadata
      id="metadata5">
     <rdf:RDF>
@@ -59,7 +59,7 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-27.591382,-115.8636)">
+     transform="translate(-33.591382,-121.8636)">
     <path
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:141.1111145px;line-height:125%;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#c7152b;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 126.42598,140.98806 c -5.88477,0.1908 -12.01659,1.8983 -16.87188,5.22893 -4.07918,2.79823 -7.36709,7.53562 -9.20176,11.64283 -1.974883,4.42108 -3.217575,8.38312 -3.359226,15.93998 -0.14165,7.55685 0.09849,24.16292 0.06567,27.99643 -14.806967,-0.005 -28.533317,-0.006 -43.451092,0 0.01463,4.56159 0.02904,10.08413 0.0016,14.6451 H 158.3615 c -0.0208,-7.17267 -0.0521,-31.40405 -0.0511,-39.53448 6e-4,-5.05882 -0.47631,-12.54417 -2.11258,-17.68295 -1.87164,-5.87797 -5.3461,-10.40393 -10.02003,-13.49197 -5.64946,-3.73258 -12.98417,-4.96329 -19.75177,-4.74387 z m -18.96267,1.70877 c 0,0 -14.522542,1.48239 -28.891253,4.65053 -14.523079,2.89503 -25.006707,19.0048 -24.868766,32.67035 -0.103241,5.25028 -0.118065,10.44432 -0.11007,15.6962 12.421098,-0.0253 25.446929,-0.13266 36.816874,0 -0.02651,-8.45692 -0.515511,-21.11103 1.075501,-31.75594 0.721625,-4.82815 2.495214,-8.66629 4.76793,-12.0166 1.490665,-2.19745 4.355064,-4.66449 6.338024,-6.20632 1.51086,-1.17476 4.87176,-3.03822 4.87176,-3.03822 z m 21.1645,12.94702 c 3.04805,0.0281 5.73328,0.77787 7.9991,2.27082 4.7233,3.11218 6.64363,9.9366 6.6952,15.59285 0.0862,9.45856 0.14967,20.29259 0.31471,28.38638 -10.49675,0.0202 -20.99383,-0.0201 -31.49058,0 0.0968,-11.52051 0.0847,-18.83084 0.35915,-28.38638 0.21155,-7.36753 3.30654,-13.05245 7.15656,-15.65967 2.10617,-1.42629 5.51141,-2.23579 8.96586,-2.204 z"
