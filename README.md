@@ -1,4 +1,4 @@
-![](res/boxt192x192.png)
+![](res/boxt168x168.png)
 
 [![Build Status](https://travis-ci.org/igrmk/boxt.png)](https://travis-ci.org/igrmk/boxt)
 [![GoReportCard](http://goreportcard.com/badge/igrmk/boxt)](http://goreportcard.com/report/igrmk/boxt)
