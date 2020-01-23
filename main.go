@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -539,15 +538,11 @@ func main() {
 	}
 	go func() {
 		err := s.ListenAndServe()
-		if err != nil {
-			log.Fatalf("ListenAndServe (email): %v", err)
-		}
+		checkErr(err)
 	}()
 	go func() {
 		err := http.ListenAndServe(w.cfg.ListenAddress, nil)
-		if err != nil {
-			log.Fatalf("ListenAndServe (telegram): %v", err)
-		}
+		checkErr(err)
 	}()
 	signals := make(chan os.Signal, 16)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
