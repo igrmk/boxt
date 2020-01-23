@@ -426,17 +426,27 @@ func (w *worker) userCount() int {
 	return singleInt(query)
 }
 
+func (w *worker) activeUserCount() int {
+	query := w.db.QueryRow(`
+		select count(*) from (
+			select 1 from users
+			join addresses on users.chat_id=addresses.chat_id
+			group by users.chat_id
+			having sum(addresses.received) > 0)
+		`)
+	return singleInt(query)
+}
+
 func (w *worker) emailCount() int {
 	query := w.db.QueryRow("select sum(received) from addresses")
 	return singleInt(query)
 }
 
 func (w *worker) stat() {
-	userCount := w.userCount()
-	emailCount := w.emailCount()
 	lines := []string{}
-	lines = append(lines, fmt.Sprintf("users: %d", userCount))
-	lines = append(lines, fmt.Sprintf("emails: %d", emailCount))
+	lines = append(lines, fmt.Sprintf("users: %d", w.userCount()))
+	lines = append(lines, fmt.Sprintf("active users: %d", w.activeUserCount()))
+	lines = append(lines, fmt.Sprintf("emails: %d", w.emailCount()))
 	w.sendText(w.cfg.AdminID, false, parseRaw, strings.Join(lines, "\n"))
 }
 
