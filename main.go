@@ -209,19 +209,23 @@ func randString(n int) string {
 	return string(b)
 }
 
+func (w *worker) newRandUsername() (username string) {
+	for {
+		username = randString(5)
+		exists := w.db.QueryRow("select count(*) from addresses where username=?", username)
+		if singleInt(exists) == 0 {
+			break
+		}
+	}
+	return
+}
+
 func (w *worker) start(chatID int64) {
 	exists := w.db.QueryRow("select count(*) from users where chat_id=?", chatID)
 	if singleInt(exists) == 0 {
 		w.mustExec("insert into users (chat_id) values (?)", chatID)
 		for i := 0; i < w.cfg.FreeEmails; i++ {
-			username := ""
-			for {
-				username = randString(5)
-				exists := w.db.QueryRow("select count(*) from addresses where username=?", username)
-				if singleInt(exists) == 0 {
-					break
-				}
-			}
+			username := w.newRandUsername()
 			w.mustExec("insert into addresses (chat_id, username) values (?,?)", chatID, username)
 		}
 	}
