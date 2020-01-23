@@ -116,22 +116,22 @@ func (w *worker) received(e *env) {
 			e.mime.GetHeader("Subject"),
 			e.mime.GetHeader("From"),
 			e.mime.GetHeader("To"), e.mime.Text)
-		w.send(chatID, true, parseRaw, text)
+		w.sendText(chatID, true, parseRaw, text)
 		for _, inline := range e.mime.Inlines {
 			b := tg.FileBytes{Name: inline.FileName, Bytes: inline.Content}
 			switch {
 			case strings.HasPrefix(inline.ContentType, "image/"):
 				msg := tg.NewPhotoUpload(chatID, b)
-				w.bot.Send(msg)
+				w.send(&photoConfig{msg})
 			default:
 				msg := tg.NewDocumentUpload(chatID, b)
-				w.bot.Send(msg)
+				w.send(&documentConfig{msg})
 			}
 		}
 		for _, inline := range e.mime.Attachments {
 			b := tg.FileBytes{Name: inline.FileName, Bytes: inline.Content}
 			msg := tg.NewDocumentUpload(chatID, b)
-			w.bot.Send(msg)
+			w.send(&documentConfig{msg})
 		}
 	}
 }
@@ -228,7 +228,7 @@ func (w *worker) start(chatID int64) {
 	}
 	lines := w.addressStrings(w.addressesOfUser(chatID))
 	lines = append([]string{"We created 10 email addreses for you. An email sent to any of these addresses will appear here in the chat"}, lines...)
-	w.send(chatID, false, parseRaw, strings.Join(lines, "\n"))
+	w.sendText(chatID, false, parseRaw, strings.Join(lines, "\n"))
 }
 
 func (w *worker) broadcastChats() (chats []int64) {
@@ -252,39 +252,39 @@ func (w *worker) broadcast(text string) {
 	}
 	chats := w.broadcastChats()
 	for _, chatID := range chats {
-		w.send(chatID, true, parseRaw, text)
+		w.sendText(chatID, true, parseRaw, text)
 	}
-	w.send(w.cfg.AdminID, false, parseRaw, "OK")
+	w.sendText(w.cfg.AdminID, false, parseRaw, "OK")
 }
 
 func (w *worker) direct(arguments string) {
 	parts := strings.SplitN(arguments, " ", 2)
 	if len(parts) < 2 {
-		w.send(w.cfg.AdminID, false, parseRaw, "usage: /direct chatID text")
+		w.sendText(w.cfg.AdminID, false, parseRaw, "usage: /direct chatID text")
 		return
 	}
 	whom, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
-		w.send(w.cfg.AdminID, false, parseRaw, "first argument is invalid")
+		w.sendText(w.cfg.AdminID, false, parseRaw, "first argument is invalid")
 		return
 	}
 	text := parts[1]
 	if text == "" {
 		return
 	}
-	w.send(whom, true, parseRaw, text)
-	w.send(w.cfg.AdminID, false, parseRaw, "OK")
+	w.sendText(whom, true, parseRaw, text)
+	w.sendText(w.cfg.AdminID, false, parseRaw, "OK")
 }
 
 func (w *worker) addUsername(arguments string) {
 	parts := strings.SplitN(arguments, " ", 2)
 	if len(parts) < 2 {
-		w.send(w.cfg.AdminID, false, parseRaw, "usage: /add_username chatID email")
+		w.sendText(w.cfg.AdminID, false, parseRaw, "usage: /add_username chatID email")
 		return
 	}
 	chatID, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
-		w.send(w.cfg.AdminID, false, parseRaw, "first argument is invalid")
+		w.sendText(w.cfg.AdminID, false, parseRaw, "first argument is invalid")
 		return
 	}
 	username := parts[1]
@@ -292,7 +292,7 @@ func (w *worker) addUsername(arguments string) {
 		return
 	}
 	w.mustExec("insert into addresses (chat_id, username) values (?,?)", chatID, username)
-	w.send(w.cfg.AdminID, false, parseRaw, "OK")
+	w.sendText(w.cfg.AdminID, false, parseRaw, "OK")
 }
 
 func (w *worker) processAdminMessage(chatID int64, command, arguments string) bool {
@@ -331,7 +331,7 @@ func (w *worker) processIncomingCommand(chatID int64, command, arguments string)
 	case "unmute":
 		w.unmute(chatID, arguments)
 	default:
-		w.send(chatID, false, parseRaw, "Unknown command")
+		w.sendText(chatID, false, parseRaw, "Unknown command")
 	}
 }
 
@@ -372,50 +372,50 @@ func (w *worker) processTGUpdate(u tg.Update) {
 
 func (w *worker) feedback(chatID int64, text string) {
 	if text == "" {
-		w.send(chatID, false, parseRaw, "Command format: /feedback <text>")
+		w.sendText(chatID, false, parseRaw, "Command format: /feedback <text>")
 		return
 	}
 	w.mustExec("insert into feedback (chat_id, text) values (?, ?)", chatID, text)
-	w.send(chatID, false, parseRaw, "Thank you for your feedback")
-	w.send(w.cfg.AdminID, true, parseRaw, fmt.Sprintf("Feedback: %s", text))
+	w.sendText(chatID, false, parseRaw, "Thank you for your feedback")
+	w.sendText(w.cfg.AdminID, true, parseRaw, fmt.Sprintf("Feedback: %s", text))
 }
 
 func (w *worker) mute(chatID int64, address string) {
 	if address == "" {
-		w.send(chatID, false, parseRaw, "Command format: /mute <email@boxt.us>")
+		w.sendText(chatID, false, parseRaw, "Command format: /mute <email@boxt.us>")
 		return
 	}
 	username, host := splitAddress(address)
 	if host != w.cfg.Host {
-		w.send(chatID, false, parseRaw, "Address not found")
+		w.sendText(chatID, false, parseRaw, "Address not found")
 		return
 	}
 	exists := w.db.QueryRow("select count(*) from addresses where chat_id=? and username=?", chatID, username)
 	if singleInt(exists) == 0 {
-		w.send(chatID, false, parseRaw, "Address not found")
+		w.sendText(chatID, false, parseRaw, "Address not found")
 		return
 	}
 	w.mustExec("update addresses set muted=1 where username=?", username)
-	w.send(chatID, false, parseRaw, "OK")
+	w.sendText(chatID, false, parseRaw, "OK")
 }
 
 func (w *worker) unmute(chatID int64, address string) {
 	if address == "" {
-		w.send(chatID, false, parseRaw, "Command format: /unmute <email@boxt.us>")
+		w.sendText(chatID, false, parseRaw, "Command format: /unmute <email@boxt.us>")
 		return
 	}
 	username, host := splitAddress(address)
 	if host != w.cfg.Host {
-		w.send(chatID, false, parseRaw, "Address not found")
+		w.sendText(chatID, false, parseRaw, "Address not found")
 		return
 	}
 	exists := w.db.QueryRow("select count(*) from addresses where chat_id=? and username=?", chatID, username)
 	if singleInt(exists) == 0 {
-		w.send(chatID, false, parseRaw, "Address not found")
+		w.sendText(chatID, false, parseRaw, "Address not found")
 		return
 	}
 	w.mustExec("update addresses set muted=0 where username=?", username)
-	w.send(chatID, false, parseRaw, "OK")
+	w.sendText(chatID, false, parseRaw, "OK")
 }
 
 func (w *worker) userCount() int {
@@ -434,24 +434,26 @@ func (w *worker) stat() {
 	lines := []string{}
 	lines = append(lines, fmt.Sprintf("users: %d", userCount))
 	lines = append(lines, fmt.Sprintf("emails: %d", emailCount))
-	w.send(w.cfg.AdminID, false, parseRaw, strings.Join(lines, "\n"))
+	w.sendText(w.cfg.AdminID, false, parseRaw, strings.Join(lines, "\n"))
 }
 
-func (w *worker) send(chatID int64, notify bool, parse parseKind, text string) {
+func (w *worker) sendText(chatID int64, notify bool, parse parseKind, text string) {
 	msg := tg.NewMessage(chatID, text)
 	msg.DisableNotification = !notify
 	switch parse {
 	case parseHTML, parseMarkdown:
 		msg.ParseMode = parse.String()
 	}
-	_, err := w.bot.Send(msg)
+	w.send(&messageConfig{msg})
+}
 
-	if err != nil {
+func (w *worker) send(msg baseChattable) {
+	if _, err := w.bot.Send(msg); err != nil {
 		switch err := err.(type) {
 		case tg.Error:
-			lerr("cannot send a message to %d, %v", chatID, err)
+			lerr("cannot send a message to %d, %v", msg.baseChat().ChatID, err)
 		default:
-			lerr("unexpected error type while sending a message to %d, %v", chatID, err)
+			lerr("unexpected error type while sending a message to %d, %v", msg.baseChat().ChatID, err)
 		}
 	}
 }
@@ -487,7 +489,7 @@ func (w *worker) listAddresses(chatID int64) {
 		lines = append(lines, "MUTED")
 		lines = append(lines, w.addressStrings(muted)...)
 	}
-	w.send(chatID, false, parseRaw, strings.Join(lines, "\n"))
+	w.sendText(chatID, false, parseRaw, strings.Join(lines, "\n"))
 }
 
 func (w *worker) addressForUsername(username string) *address {
@@ -548,7 +550,7 @@ func main() {
 		}
 	}()
 	signals := make(chan os.Signal, 16)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT, syscall.SIGKILL)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
 	for {
 		select {
 		case m := <-mail:
