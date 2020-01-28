@@ -71,6 +71,7 @@ type address struct {
 	muted    bool
 }
 
+// Close implements smtpd.Envelope.Close
 func (e *env) Close() error {
 	mime, err := enmime.ReadEnvelope(bytes.NewReader(e.data))
 	if err != nil {
@@ -81,9 +82,16 @@ func (e *env) Close() error {
 	return nil
 }
 
+// Write implements smtpd.Envelope.Write
 func (e *env) Write(line []byte) error {
 	e.data = append(e.data, line...)
 	return nil
+}
+
+// AddRecipient implements smtpd.Envelope.AddRecipient
+func (e *env) AddRecipient(rcpt smtpd.MailAddress) error {
+	e.rcpts = append(e.rcpts, rcpt)
+	return e.BasicEnvelope.AddRecipient(rcpt)
 }
 
 func splitAddress(a string) (string, string) {
@@ -133,11 +141,6 @@ func (w *worker) received(e *env) {
 			w.send(&documentConfig{msg})
 		}
 	}
-}
-
-func (e *env) AddRecipient(rcpt smtpd.MailAddress) error {
-	e.rcpts = append(e.rcpts, rcpt)
-	return e.BasicEnvelope.AddRecipient(rcpt)
 }
 
 func mailFactory(ch chan *env) func(smtpd.Connection, smtpd.MailAddress) (smtpd.Envelope, error) {
