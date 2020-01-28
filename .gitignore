@@ -16,4 +16,4 @@ boxt
 *.out
 
 *.orig
-deploy
+deploy*
