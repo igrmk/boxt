@@ -63,6 +63,7 @@ type env struct {
 	mime  *enmime.Envelope
 	rcpts []smtpd.MailAddress
 	ch    chan<- *env
+	found chan bool
 }
 
 type address struct {
@@ -78,7 +79,13 @@ func (e *env) Close() error {
 		return err
 	}
 	e.mime = mime
+	e.found = make(chan bool)
+	defer close(e.found)
 	e.ch <- e
+	found := <-e.found
+	if !found {
+		return errors.New("Address not found")
+	}
 	return nil
 }
 
@@ -116,6 +123,8 @@ func (w *worker) received(e *env) {
 			w.mustExec("update addresses set received=received+1 where username=?", username)
 		}
 	}
+
+	e.found <- len(chatIDs) > 0
 
 	for chatID := range chatIDs {
 		text := fmt.Sprintf(
