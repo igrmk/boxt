@@ -84,7 +84,7 @@ func (e *env) Close() error {
 	e.ch <- e
 	found := <-e.found
 	if !found {
-		return errors.New("Address not found")
+		return smtpd.SMTPError("550 bad recipient")
 	}
 	return nil
 }
