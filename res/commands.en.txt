@@ -2,3 +2,4 @@ mute - Mute specified boxt email address
 unmute - Unmute specified boxt email address
 feedback - Send feedback
 addresses - Show your boxt addresses
+source - Show source code
