@@ -345,6 +345,8 @@ func (w *worker) processIncomingCommand(chatID int64, command, arguments string)
 		w.mute(chatID, arguments)
 	case "unmute":
 		w.unmute(chatID, arguments)
+	case "source":
+		w.sendText(chatID, false, parseRaw, "Source code: https://github.com/igrmk/boxt")
 	default:
 		w.sendText(chatID, false, parseRaw, "Unknown command")
 	}
