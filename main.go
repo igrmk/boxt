@@ -69,7 +69,7 @@ func splitAddress(a string) (string, string) {
 	return parts[0], parts[1]
 }
 
-func (w *worker) received(e *env) {
+func (w *worker) mailReceived(e *env) {
 	chatIDs := make(map[int64]bool)
 	for _, r := range e.rcpts {
 		username, host := splitAddress(r.Email())
@@ -111,7 +111,7 @@ func (w *worker) received(e *env) {
 	}
 }
 
-func mailFactory(ch chan *env) func(smtpd.Connection, smtpd.MailAddress) (smtpd.Envelope, error) {
+func envelopeFactory(ch chan *env) func(smtpd.Connection, smtpd.MailAddress) (smtpd.Envelope, error) {
 	return func(c smtpd.Connection, from smtpd.MailAddress) (smtpd.Envelope, error) {
 		return &env{BasicEnvelope: &smtpd.BasicEnvelope{}, from: from, ch: ch}, nil
 	}
@@ -200,7 +200,7 @@ func (w *worker) start(chatID int64) {
 			w.mustExec("insert into addresses (chat_id, username) values (?,?)", chatID, username)
 		}
 	}
-	lines := w.addressStrings(w.addressesOfUser(chatID))
+	lines := w.addressStrings(w.addressesForChat(chatID))
 	lines = append([]string{"We created 10 email addreses for you. An email sent to any of these addresses will appear here in the chat"}, lines...)
 	w.sendText(chatID, false, parseRaw, strings.Join(lines, "\n"))
 }
@@ -453,7 +453,7 @@ func (w *worker) addressStrings(addresses []address) []string {
 }
 
 func (w *worker) listAddresses(chatID int64) {
-	addrs := w.addressesOfUser(chatID)
+	addrs := w.addressesForChat(chatID)
 	active := []address{}
 	muted := []address{}
 	for _, a := range addrs {
@@ -493,7 +493,7 @@ func (w *worker) addressForUsername(username string) *address {
 	return nil
 }
 
-func (w *worker) addressesOfUser(chatID int64) (addresses []address) {
+func (w *worker) addressesForChat(chatID int64) (addresses []address) {
 	modelsQuery, err := w.db.Query(`
 		select username, muted from addresses
 		where chat_id=?
@@ -518,13 +518,13 @@ func main() {
 	incoming := w.bot.ListenForWebhook(w.cfg.Host + w.cfg.ListenPath)
 
 	mail := make(chan *env)
-	s := &smtpd.Server{
+	smtp := &smtpd.Server{
 		Hostname:  w.cfg.Host,
 		Addr:      w.cfg.MailAddress,
-		OnNewMail: mailFactory(mail),
+		OnNewMail: envelopeFactory(mail),
 	}
 	go func() {
-		err := s.ListenAndServe()
+		err := smtp.ListenAndServe()
 		checkErr(err)
 	}()
 	go func() {
@@ -536,7 +536,7 @@ func main() {
 	for {
 		select {
 		case m := <-mail:
-			w.received(m)
+			w.mailReceived(m)
 		case m := <-incoming:
 			w.processTGUpdate(m)
 		case s := <-signals:
