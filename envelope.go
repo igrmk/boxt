@@ -9,12 +9,19 @@ import (
 
 type env struct {
 	*smtpd.BasicEnvelope
-	from  smtpd.MailAddress
-	data  []byte
-	mime  *enmime.Envelope
-	rcpts []smtpd.MailAddress
-	ch    chan<- *env
-	found chan bool
+	from            smtpd.MailAddress
+	data            []byte
+	mime            *enmime.Envelope
+	chatIDs         map[int64][]string
+	chatForUsername chan<- chatForUsernameArgs
+	deliver         chan<- *env
+	delivered       chan bool
+	host            string
+}
+
+type chatForUsernameArgs struct {
+	chatForUsername chan *int64
+	username        string
 }
 
 // Close implements smtpd.Envelope.Close
@@ -24,12 +31,12 @@ func (e *env) Close() error {
 		return err
 	}
 	e.mime = mime
-	e.found = make(chan bool)
-	defer close(e.found)
-	e.ch <- e
-	found := <-e.found
-	if !found {
-		return smtpd.SMTPError("550 bad recipient")
+	e.delivered = make(chan bool)
+	defer close(e.delivered)
+	e.deliver <- e
+	delivered := <-e.delivered
+	if !delivered {
+		return smtpd.SMTPError("450 mailbox unavailable")
 	}
 	return nil
 }
@@ -42,6 +49,17 @@ func (e *env) Write(line []byte) error {
 
 // AddRecipient implements smtpd.Envelope.AddRecipient
 func (e *env) AddRecipient(rcpt smtpd.MailAddress) error {
-	e.rcpts = append(e.rcpts, rcpt)
+	username, host := splitAddress(rcpt.Email())
+	if host != e.host {
+		return smtpd.SMTPError("550 bad recipient")
+	}
+	chatForUsername := make(chan *int64)
+	defer close(chatForUsername)
+	e.chatForUsername <- chatForUsernameArgs{chatForUsername: chatForUsername, username: username}
+	chatID := <-chatForUsername
+	if chatID == nil {
+		return smtpd.SMTPError("550 bad recipient")
+	}
+	e.chatIDs[*chatID] = append(e.chatIDs[*chatID], username)
 	return e.BasicEnvelope.AddRecipient(rcpt)
 }
