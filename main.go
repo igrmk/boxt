@@ -69,72 +69,74 @@ func splitAddress(a string) (string, string) {
 	return parts[0], parts[1]
 }
 
-func (w *worker) deliver(e *env) {
-	for _, usernames := range e.chatIDs {
-		for _, username := range usernames {
-			w.mustExec("update addresses set received=received+1 where username=?", username)
-		}
+func (w *worker) deliver(e *env) bool {
+	messageID := e.mime.GetHeader("Message-ID")
+	if messageID == "" {
+		return false
 	}
 
-	if len(e.chatIDs) == 0 {
-		e.delivered <- false
-	}
+	subject := e.mime.GetHeader("Subject")
+	from := e.mime.GetHeader("From")
+	to := e.mime.GetHeader("To")
+	text := fmt.Sprintf("Subject: %s\nFrom: %s\nTo: %s\n\n%s", subject, from, to, e.mime.Text)
 
 	delivered := true
 	for chatID := range e.chatIDs {
-		text := fmt.Sprintf(
-			"Subject: %s\nFrom: %s\nTo: %s\n\n%s",
-			e.mime.GetHeader("Subject"),
-			e.mime.GetHeader("From"),
-			e.mime.GetHeader("To"), e.mime.Text)
-		if w.sendText(chatID, true, parseRaw, text) != nil {
-			delivered = false
+		duplicates := w.db.QueryRow("select count(*) from delivered_ids where chat_id=? and message_id=?", chatID, messageID)
+		if singleInt(duplicates) == 0 {
+			delivered = w.deliverToChat(chatID, messageID, text, e) && delivered
 		}
-		for _, inline := range e.mime.Inlines {
-			b := tg.FileBytes{Name: inline.FileName, Bytes: inline.Content}
-			switch {
-			case strings.HasPrefix(inline.ContentType, "image/"):
-				msg := tg.NewPhotoUpload(chatID, b)
-				if w.send(&photoConfig{msg}) != nil {
-					delivered = false
-				}
-			default:
-				msg := tg.NewDocumentUpload(chatID, b)
-				if w.send(&documentConfig{msg}) != nil {
-					delivered = false
-				}
+	}
+	return delivered
+}
+
+func (w *worker) deliverToChat(chatID int64, messageID string, text string, e *env) bool {
+	if w.sendText(chatID, true, parseRaw, text) != nil {
+		return false
+	}
+	for _, inline := range e.mime.Inlines {
+		b := tg.FileBytes{Name: inline.FileName, Bytes: inline.Content}
+		switch {
+		case strings.HasPrefix(inline.ContentType, "image/"):
+			msg := tg.NewPhotoUpload(chatID, b)
+			if w.send(&photoConfig{msg}) != nil {
+				return false
 			}
-		}
-		for _, inline := range e.mime.Attachments {
-			b := tg.FileBytes{Name: inline.FileName, Bytes: inline.Content}
+		default:
 			msg := tg.NewDocumentUpload(chatID, b)
 			if w.send(&documentConfig{msg}) != nil {
-				delivered = false
+				return false
 			}
 		}
 	}
-
-	e.delivered <- delivered
+	for _, inline := range e.mime.Attachments {
+		b := tg.FileBytes{Name: inline.FileName, Bytes: inline.Content}
+		msg := tg.NewDocumentUpload(chatID, b)
+		if w.send(&documentConfig{msg}) != nil {
+			return false
+		}
+	}
+	w.mustExec("insert into delivered_ids (chat_id, message_id) values (?,?)", chatID, messageID)
+	return true
 }
 
-func (w *worker) chatForUsername(u chatForUsernameArgs) {
+func (w *worker) chatForUsername(u chatForUsernameArgs) *int64 {
 	address := w.addressForUsername(u.username)
 	if address == nil || address.muted {
-		u.chatForUsername <- nil
-		return
+		return nil
 	}
-	u.chatForUsername <- &address.chatID
+	return &address.chatID
 }
 
-func envelopeFactory(deliver chan *env, chatForUsername chan chatForUsernameArgs, host string) func(smtpd.Connection, smtpd.MailAddress) (smtpd.Envelope, error) {
+func envelopeFactory(deliverCh chan deliverArgs, chatForUsernameCh chan chatForUsernameArgs, host string) func(smtpd.Connection, smtpd.MailAddress) (smtpd.Envelope, error) {
 	return func(c smtpd.Connection, from smtpd.MailAddress) (smtpd.Envelope, error) {
 		return &env{
-			BasicEnvelope:   &smtpd.BasicEnvelope{},
-			from:            from,
-			deliver:         deliver,
-			chatForUsername: chatForUsername,
-			chatIDs:         make(map[int64][]string),
-			host:            host,
+			BasicEnvelope:     &smtpd.BasicEnvelope{},
+			from:              from,
+			deliverCh:         deliverCh,
+			chatForUsernameCh: chatForUsernameCh,
+			chatIDs:           make(map[int64]bool),
+			host:              host,
 		}, nil
 	}
 }
@@ -188,8 +190,11 @@ func (w *worker) createDatabase() {
 		create table if not exists addresses (
 			chat_id integer,
 			username text not null default '',
-			muted integer not null default 0,
-			received integer not null default 0);`)
+			muted integer not null default 0);`)
+	w.mustExec(`
+		create table if not exists delivered_ids (
+			chat_id integer,
+			message_id text not null default '')`)
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyz"
@@ -422,18 +427,12 @@ func (w *worker) userCount() int {
 }
 
 func (w *worker) activeUserCount() int {
-	query := w.db.QueryRow(`
-		select count(*) from (
-			select 1 from users
-			join addresses on users.chat_id=addresses.chat_id
-			group by users.chat_id
-			having sum(addresses.received) > 0)
-		`)
+	query := w.db.QueryRow("select count(distinct chat_id) from delivered_ids")
 	return singleInt(query)
 }
 
 func (w *worker) emailCount() int {
-	query := w.db.QueryRow("select sum(received) from addresses")
+	query := w.db.QueryRow("select count(*) from delivered_ids")
 	return singleInt(query)
 }
 
@@ -541,12 +540,12 @@ func main() {
 	w.createDatabase()
 	incoming := w.bot.ListenForWebhook(w.cfg.Host + w.cfg.ListenPath)
 
-	deliver := make(chan *env)
-	chatForUsername := make(chan chatForUsernameArgs)
+	deliverCh := make(chan deliverArgs)
+	chatForUsernameCh := make(chan chatForUsernameArgs)
 	smtp := &smtpd.Server{
 		Hostname:  w.cfg.Host,
 		Addr:      w.cfg.MailAddress,
-		OnNewMail: envelopeFactory(deliver, chatForUsername, w.cfg.Host),
+		OnNewMail: envelopeFactory(deliverCh, chatForUsernameCh, w.cfg.Host),
 	}
 	go func() {
 		err := smtp.ListenAndServe()
@@ -560,10 +559,10 @@ func main() {
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
 	for {
 		select {
-		case m := <-deliver:
-			w.deliver(m)
-		case u := <-chatForUsername:
-			w.chatForUsername(u)
+		case m := <-deliverCh:
+			m.result <- w.deliver(m.env)
+		case u := <-chatForUsernameCh:
+			u.result <- w.chatForUsername(u)
 		case m := <-incoming:
 			w.processTGUpdate(m)
 		case s := <-signals:
