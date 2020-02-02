@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -32,6 +33,7 @@ type worker struct {
 	db     *sql.DB
 	cfg    *config
 	client *http.Client
+	tls    *tls.Config
 }
 
 func newWorker() *worker {
@@ -39,6 +41,7 @@ func newWorker() *worker {
 		panic("usage: boxt <config>")
 	}
 	cfg := readConfig(os.Args[1])
+	tls, err := loadTLS(cfg.Certificate, cfg.CertificateKey)
 	client := HTTPClientWithTimeoutAndAddress(cfg.TimeoutSeconds)
 	bot, err := tg.NewBotAPIWithClient(cfg.BotToken, client)
 	checkErr(err)
@@ -49,6 +52,7 @@ func newWorker() *worker {
 		db:     db,
 		cfg:    cfg,
 		client: client,
+		tls:    tls,
 	}
 
 	return w
@@ -532,6 +536,14 @@ func (w *worker) addressesForChat(chatID int64) (addresses []address) {
 	return
 }
 
+func loadTLS(certFile string, keyFile string) (*tls.Config, error) {
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+	return &tls.Config{Certificates: []tls.Certificate{cert}}, nil
+}
+
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	w := newWorker()
@@ -546,6 +558,7 @@ func main() {
 		Hostname:  w.cfg.Host,
 		Addr:      w.cfg.MailAddress,
 		OnNewMail: envelopeFactory(deliverCh, chatForUsernameCh, w.cfg.Host),
+		StartTLS:  w.tls,
 	}
 	go func() {
 		err := smtp.ListenAndServe()

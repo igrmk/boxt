@@ -20,6 +20,8 @@ type config struct {
 	DBPath         string `json:"db_path"`         // path to the database
 	Debug          bool   `json:"debug"`           // debug mode
 	StatPassword   string `json:"stat_password"`   // password for statistics
+	Certificate    string `json:"certificate"`     // certificate path for STARTTLS
+	CertificateKey string `json:"certificate_key"` // certificate key path for STARTTLS
 }
 
 func readConfig(path string) *config {
@@ -63,6 +65,12 @@ func checkConfig(cfg *config) error {
 	}
 	if cfg.FreeEmails == 0 {
 		return errors.New("configure free_emails")
+	}
+	if cfg.Certificate == "" {
+		return errors.New("configure certificate")
+	}
+	if cfg.CertificateKey == "" {
+		return errors.New("configure certificate_key")
 	}
 	return nil
 }
