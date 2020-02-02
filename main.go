@@ -149,7 +149,7 @@ func (w *worker) logConfig() {
 
 func (w *worker) setWebhook() {
 	linf("setting webhook...")
-	var _, err = w.bot.SetWebhook(tg.NewWebhook(path.Join(w.cfg.Host, w.cfg.ListenPath)))
+	_, err := w.bot.SetWebhook(tg.NewWebhook(path.Join(w.cfg.Host, w.cfg.ListenPath)))
 	checkErr(err)
 	info, err := w.bot.GetWebhookInfo()
 	checkErr(err)
