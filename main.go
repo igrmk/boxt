@@ -16,7 +16,7 @@ import (
 	"time"
 
 	tg "github.com/bcmk/telegram-bot-api"
-	"github.com/bradfitz/go-smtpd/smtpd"
+	"github.com/igrmk/go-smtpd/smtpd"
 	_ "github.com/mattn/go-sqlite3"
 )
 
