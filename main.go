@@ -558,7 +558,7 @@ func main() {
 		Hostname:  w.cfg.Host,
 		Addr:      w.cfg.MailAddress,
 		OnNewMail: envelopeFactory(deliverCh, chatForUsernameCh, w.cfg.Host),
-		StartTLS:  w.tls,
+		TLSConfig: w.tls,
 	}
 	go func() {
 		err := smtp.ListenAndServe()
