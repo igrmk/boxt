@@ -563,6 +563,7 @@ func main() {
 		Addr:      w.cfg.MailAddress,
 		OnNewMail: envelopeFactory(deliverCh, chatForUsernameCh, w.cfg.Host, w.cfg.MaxSize),
 		TLSConfig: w.tls,
+		MaxSize:   w.cfg.MaxSize,
 	}
 	go func() {
 		err := smtp.ListenAndServe()
