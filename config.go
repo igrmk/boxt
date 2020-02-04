@@ -43,6 +43,12 @@ func parseConfig(r io.Reader) *config {
 }
 
 func checkConfig(cfg *config) error {
+	if cfg.MailAddress == "" {
+		return errors.New("configure mail_address")
+	}
+	if cfg.MaxSize == 0 {
+		return errors.New("configure max_size")
+	}
 	if cfg.ListenAddress == "" {
 		return errors.New("configure listen_address")
 	}
