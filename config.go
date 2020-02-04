@@ -10,6 +10,7 @@ import (
 
 type config struct {
 	MailAddress    string `json:"mail_address"`    // the address to listen to incoming mail
+	MaxSize        int    `json:"max_size"`        // the maximum email size in bytes
 	ListenPath     string `json:"listen_path"`     // the path excluding domain to listen to, the good choice is "/your-telegram-bot-token"
 	ListenAddress  string `json:"listen_address"`  // the address to listen to incoming telegram messages
 	Host           string `json:"host"`            // the host name for the email addresses and the webhook

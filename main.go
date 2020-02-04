@@ -132,8 +132,11 @@ func (w *worker) chatForUsername(u chatForUsernameArgs) *int64 {
 	return &address.chatID
 }
 
-func envelopeFactory(deliverCh chan deliverArgs, chatForUsernameCh chan chatForUsernameArgs, host string) func(smtpd.Connection, smtpd.MailAddress) (smtpd.Envelope, error) {
-	return func(c smtpd.Connection, from smtpd.MailAddress) (smtpd.Envelope, error) {
+func envelopeFactory(deliverCh chan deliverArgs, chatForUsernameCh chan chatForUsernameArgs, host string, maxSize int) func(smtpd.Connection, smtpd.MailAddress, *int) (smtpd.Envelope, error) {
+	return func(c smtpd.Connection, from smtpd.MailAddress, size *int) (smtpd.Envelope, error) {
+		if size != nil && *size > maxSize {
+			return nil, smtpd.SMTPError("552 5.3.4 message too big")
+		}
 		return &env{
 			BasicEnvelope:     &smtpd.BasicEnvelope{},
 			from:              from,
@@ -141,6 +144,7 @@ func envelopeFactory(deliverCh chan deliverArgs, chatForUsernameCh chan chatForU
 			chatForUsernameCh: chatForUsernameCh,
 			chatIDs:           make(map[int64]bool),
 			host:              host,
+			maxSize:           maxSize,
 		}, nil
 	}
 }
@@ -557,7 +561,7 @@ func main() {
 	smtp := &smtpd.Server{
 		Hostname:  w.cfg.Host,
 		Addr:      w.cfg.MailAddress,
-		OnNewMail: envelopeFactory(deliverCh, chatForUsernameCh, w.cfg.Host),
+		OnNewMail: envelopeFactory(deliverCh, chatForUsernameCh, w.cfg.Host, w.cfg.MaxSize),
 		TLSConfig: w.tls,
 	}
 	go func() {

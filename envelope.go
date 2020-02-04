@@ -16,6 +16,7 @@ type env struct {
 	chatIDs           map[int64]bool
 	chatForUsernameCh chan<- chatForUsernameArgs
 	deliverCh         chan<- deliverArgs
+	maxSize           int
 }
 
 type chatForUsernameArgs struct {
@@ -47,6 +48,9 @@ func (e *env) Close() error {
 // Write implements smtpd.Envelope.Write
 func (e *env) Write(line []byte) error {
 	e.data = append(e.data, line...)
+	if len(e.data) > e.maxSize {
+		return smtpd.SMTPError("552 5.3.4 message too big")
+	}
 	return nil
 }
 
