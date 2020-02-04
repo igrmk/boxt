@@ -235,8 +235,9 @@ func (w *worker) start(chatID int64) {
 			w.mustExec("insert into addresses (chat_id, username) values (?,?)", chatID, username)
 		}
 	}
-	lines := w.addressStrings(w.addressesForChat(chatID))
-	lines = append([]string{"We created 10 email addreses for you. An email sent to any of these addresses will appear here in the chat"}, lines...)
+	addresses := w.addressesForChat(chatID)
+	lines := w.addressStrings(addresses)
+	lines = append([]string{fmt.Sprintf("We created %d email addreses for you. An email sent to any of these addresses will appear here in the chat", len(addresses))}, lines...)
 	_ = w.sendText(chatID, false, parseRaw, strings.Join(lines, "\n"))
 }
 
