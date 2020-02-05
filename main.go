@@ -43,7 +43,7 @@ func newWorker() *worker {
 	cfg := readConfig(os.Args[1])
 	tls, err := loadTLS(cfg.Certificate, cfg.CertificateKey)
 	checkErr(err)
-	client := HTTPClientWithTimeoutAndAddress(cfg.TimeoutSeconds)
+	client := &http.Client{Timeout: time.Second * time.Duration(cfg.TimeoutSeconds)}
 	bot, err := tg.NewBotAPIWithClient(cfg.BotToken, client)
 	checkErr(err)
 	db, err := sql.Open("sqlite3", cfg.DBPath)
