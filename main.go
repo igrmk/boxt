@@ -42,6 +42,7 @@ func newWorker() *worker {
 	}
 	cfg := readConfig(os.Args[1])
 	tls, err := loadTLS(cfg.Certificate, cfg.CertificateKey)
+	checkErr(err)
 	client := HTTPClientWithTimeoutAndAddress(cfg.TimeoutSeconds)
 	bot, err := tg.NewBotAPIWithClient(cfg.BotToken, client)
 	checkErr(err)
