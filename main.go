@@ -107,6 +107,16 @@ func (w *worker) deliverToChat(chatID int64, messageID string, text string, e *e
 			if w.send(&photoConfig{msg}) != nil {
 				return false
 			}
+		case strings.HasPrefix(inline.ContentType, "video/"):
+			msg := tg.NewVideoUpload(chatID, b)
+			if w.send(&videoConfig{msg}) != nil {
+				return false
+			}
+		case strings.HasPrefix(inline.ContentType, "audio/"):
+			msg := tg.NewAudioUpload(chatID, b)
+			if w.send(&audioConfig{msg}) != nil {
+				return false
+			}
 		default:
 			msg := tg.NewDocumentUpload(chatID, b)
 			if w.send(&documentConfig{msg}) != nil {

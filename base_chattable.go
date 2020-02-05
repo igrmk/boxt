@@ -19,6 +19,18 @@ func (m *photoConfig) baseChat() *tg.BaseChat {
 	return &m.BaseChat
 }
 
+type videoConfig struct{ tg.VideoConfig }
+
+func (m *videoConfig) baseChat() *tg.BaseChat {
+	return &m.BaseChat
+}
+
+type audioConfig struct{ tg.AudioConfig }
+
+func (m *audioConfig) baseChat() *tg.BaseChat {
+	return &m.BaseChat
+}
+
 type documentConfig struct{ tg.DocumentConfig }
 
 func (m *documentConfig) baseChat() *tg.BaseChat {
