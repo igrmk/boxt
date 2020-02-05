@@ -270,12 +270,12 @@ func (w *worker) broadcast(text string) {
 func (w *worker) direct(arguments string) {
 	parts := strings.SplitN(arguments, " ", 2)
 	if len(parts) < 2 {
-		_ = w.sendText(w.cfg.AdminID, false, parseRaw, "usage: /direct chatID text")
+		_ = w.sendText(w.cfg.AdminID, false, parseRaw, "Usage: /direct chatID text")
 		return
 	}
 	whom, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
-		_ = w.sendText(w.cfg.AdminID, false, parseRaw, "first argument is invalid")
+		_ = w.sendText(w.cfg.AdminID, false, parseRaw, "First argument is invalid")
 		return
 	}
 	text := parts[1]
@@ -289,12 +289,12 @@ func (w *worker) direct(arguments string) {
 func (w *worker) addUsername(arguments string) {
 	parts := strings.SplitN(arguments, " ", 2)
 	if len(parts) < 2 {
-		_ = w.sendText(w.cfg.AdminID, false, parseRaw, "usage: /add_username chatID email")
+		_ = w.sendText(w.cfg.AdminID, false, parseRaw, "Usage: /add_username chatID email")
 		return
 	}
 	chatID, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
-		_ = w.sendText(w.cfg.AdminID, false, parseRaw, "first argument is invalid")
+		_ = w.sendText(w.cfg.AdminID, false, parseRaw, "First argument is invalid")
 		return
 	}
 	username := parts[1]
