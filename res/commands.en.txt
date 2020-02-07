@@ -3,3 +3,4 @@ unmute - Unmute specified boxt email address
 feedback - Send feedback
 addresses - Show your boxt addresses
 source - Show source code
+referral - Show your referral link

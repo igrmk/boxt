@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/igrmk/boxt.png)](https://travis-ci.org/igrmk/boxt)
 [![GoReportCard](http://goreportcard.com/badge/igrmk/boxt)](http://goreportcard.com/report/igrmk/boxt)
 
-We create 10 email addresses for you. An email sent to any of these addresses will appear in your telegram chat.
+We create email addresses for you. An email sent to any of these addresses will appear in your telegram chat.
 
 Installation
 ------------
