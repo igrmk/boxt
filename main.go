@@ -598,6 +598,16 @@ func (w *worker) listAddresses(chatID int64) {
 		lines = append(lines, "MUTED")
 		lines = append(lines, w.addressStrings(muted)...)
 	}
+	externalID := w.externalID(chatID)
+	if externalID == nil {
+		return
+	}
+	referralLink := fmt.Sprintf("https://t.me/%s?start=%s", w.cfg.BotName, *externalID)
+	referralLine := fmt.Sprintf("\nEarn emails by sharing the referral link!\n%s\n\nYou will get %d emails for every new registered user\nNew user will get %d additional emails",
+		referralLink,
+		w.cfg.ReferralBonus,
+		w.cfg.FollowerBonus)
+	lines = append(lines, referralLine)
 	_ = w.sendText(chatID, false, parseRaw, strings.Join(lines, "\n"))
 }
 
