@@ -9,13 +9,16 @@ import (
 )
 
 type config struct {
+	BotName        string `json:"bot_name"`        // the name of the bot
 	MailAddress    string `json:"mail_address"`    // the address to listen to incoming mail
 	MaxSize        int    `json:"max_size"`        // the maximum email size in bytes
 	ListenPath     string `json:"listen_path"`     // the path excluding domain to listen to, the good choice is "/your-telegram-bot-token"
 	ListenAddress  string `json:"listen_address"`  // the address to listen to incoming telegram messages
 	Host           string `json:"host"`            // the host name for the email addresses and the webhook
 	BotToken       string `json:"bot_token"`       // your telegram bot token
-	FreeEmails     int    `json:"free_emails"`     // free emails given on first start
+	FreeEmails     int    `json:"free_emails"`     // number of free emails on first start
+	ReferralBonus  int    `json:"referral_bonus"`  // number of emails for a referrer
+	FollowerBonus  int    `json:"follower_bonus"`  // number of emails for a new user registered by a referral link
 	TimeoutSeconds int    `json:"timeout_seconds"` // HTTP timeout
 	AdminID        int64  `json:"admin_id"`        // admin telegram ID
 	DBPath         string `json:"db_path"`         // path to the database
@@ -43,6 +46,9 @@ func parseConfig(r io.Reader) *config {
 }
 
 func checkConfig(cfg *config) error {
+	if cfg.BotName == "" {
+		return errors.New("configure bot_name")
+	}
 	if cfg.MailAddress == "" {
 		return errors.New("configure mail_address")
 	}
@@ -72,6 +78,12 @@ func checkConfig(cfg *config) error {
 	}
 	if cfg.FreeEmails == 0 {
 		return errors.New("configure free_emails")
+	}
+	if cfg.ReferralBonus == 0 {
+		return errors.New("configure referral_bonus")
+	}
+	if cfg.FollowerBonus == 0 {
+		return errors.New("configure follower_bonus")
 	}
 	if cfg.Certificate == "" {
 		return errors.New("configure certificate")

@@ -204,7 +204,8 @@ func (w *worker) createDatabase() {
 			text text);`)
 	w.mustExec(`
 		create table if not exists users (
-			chat_id integer primary key);`)
+			chat_id integer primary key,
+			external_id text not null default '');`)
 	w.mustExec(`
 		create table if not exists addresses (
 			chat_id integer,
@@ -237,18 +238,82 @@ func (w *worker) newRandUsername() (username string) {
 	return
 }
 
-func (w *worker) start(chatID int64) {
-	exists := w.db.QueryRow("select count(*) from users where chat_id=?", chatID)
-	if singleInt(exists) == 0 {
-		w.mustExec("insert into users (chat_id) values (?)", chatID)
-		for i := 0; i < w.cfg.FreeEmails; i++ {
+func (w *worker) newRandExternalID() (id string) {
+	for {
+		id = randString(5)
+		exists := w.db.QueryRow("select count(*) from users where external_id=?", id)
+		if singleInt(exists) == 0 {
+			break
+		}
+	}
+	return
+}
+
+func (w *worker) refer(referrer string) bool {
+	chatID := w.chatForExternalID(referrer)
+	if chatID == nil {
+		return false
+	}
+	for i := 0; i < w.cfg.ReferralBonus; i++ {
+		username := w.newRandExternalID()
+		w.mustExec("insert into addresses (chat_id, username) values (?,?)", *chatID, username)
+	}
+	return true
+}
+
+func (w *worker) externalID(chatID int64) *string {
+	query, err := w.db.Query("select external_id from users where chat_id=?", chatID)
+	checkErr(err)
+	defer query.Close()
+	if !query.Next() {
+		return nil
+	}
+	var externalID string
+	checkErr(query.Scan(&externalID))
+	return &externalID
+}
+
+func (w *worker) chatForExternalID(externalID string) *int64 {
+	query, err := w.db.Query("select chat_id from users where external_id=?", externalID)
+	checkErr(err)
+	defer query.Close()
+	if !query.Next() {
+		return nil
+	}
+	var chatID int64
+	checkErr(query.Scan(&chatID))
+	return &chatID
+}
+
+func (w *worker) start(chatID int64, referrer string) {
+	externalID := w.externalID(chatID)
+	if externalID == nil {
+		referOK := false
+		if chatID > 0 && referrer != "" {
+			referOK = w.refer(referrer)
+		}
+		temp := w.newRandUsername()
+		externalID = &temp
+		w.mustExec("insert into users (chat_id, external_id) values (?, ?)", chatID, *externalID)
+		emails := w.cfg.FreeEmails
+		if referOK {
+			emails += w.cfg.FollowerBonus
+		}
+		for i := 0; i < emails; i++ {
 			username := w.newRandUsername()
 			w.mustExec("insert into addresses (chat_id, username) values (?,?)", chatID, username)
 		}
 	}
-	addresses := w.addressesForChat(chatID)
-	lines := w.addressStrings(addresses)
-	lines = append([]string{fmt.Sprintf("We created %d email addreses for you. An email sent to any of these addresses will appear here in the chat", len(addresses))}, lines...)
+	usernames := w.usernamesForChat(chatID)
+	lines := w.addressStrings(usernames)
+	referralLink := fmt.Sprintf("https://t.me/%s?start=%s", w.cfg.BotName, *externalID)
+	welcome := fmt.Sprintf("We created %d email addreses for you. An email sent to any of these addresses will appear here in the chat", len(usernames))
+	lines = append([]string{welcome}, lines...)
+	referralLine := fmt.Sprintf("\nEarn emails by sharing the referral link!\n%s\n\nYou will get %d emails for every new registered user\nNew user will get %d additional emails",
+		referralLink,
+		w.cfg.ReferralBonus,
+		w.cfg.FollowerBonus)
+	lines = append(lines, referralLine)
 	_ = w.sendText(chatID, false, parseRaw, strings.Join(lines, "\n"))
 }
 
@@ -346,11 +411,13 @@ func (w *worker) processIncomingCommand(chatID int64, command, arguments string)
 	case "feedback":
 		w.feedback(chatID, arguments)
 	case "start":
-		w.start(chatID)
+		w.start(chatID, arguments)
 	case "mute":
 		w.mute(chatID, arguments)
 	case "unmute":
 		w.unmute(chatID, arguments)
+	case "referral":
+		w.referralLink(chatID)
 	case "source":
 		_ = w.sendText(chatID, false, parseRaw, "Source code: https://github.com/igrmk/boxt")
 	default:
@@ -374,7 +441,7 @@ func (w *worker) processTGUpdate(u tg.Update) {
 			ourID := w.ourID()
 			for _, m := range *newMembers {
 				if int64(m.ID) == ourID {
-					w.start(u.Message.Chat.ID)
+					w.start(u.Message.Chat.ID, "")
 					break
 				}
 			}
@@ -441,6 +508,19 @@ func (w *worker) unmute(chatID int64, address string) {
 	_ = w.sendText(chatID, false, parseRaw, "OK")
 }
 
+func (w *worker) referralLink(chatID int64) {
+	if chatID < 0 {
+		_ = w.sendText(chatID, false, parseRaw, "Referral links don't work for group chats")
+		return
+	}
+	externalID := w.externalID(chatID)
+	if externalID == nil {
+		return
+	}
+	referralLink := fmt.Sprintf("https://t.me/%s?start=%s", w.cfg.BotName, *externalID)
+	_ = w.sendText(chatID, false, parseRaw, fmt.Sprintf("Your referral link is %s", referralLink))
+}
+
 func (w *worker) userCount() int {
 	query := w.db.QueryRow("select count(*) from users")
 	return singleInt(query)
@@ -496,7 +576,7 @@ func (w *worker) addressStrings(addresses []address) []string {
 }
 
 func (w *worker) listAddresses(chatID int64) {
-	addrs := w.addressesForChat(chatID)
+	addrs := w.usernamesForChat(chatID)
 	active := []address{}
 	muted := []address{}
 	for _, a := range addrs {
@@ -536,7 +616,7 @@ func (w *worker) addressForUsername(username string) *address {
 	return nil
 }
 
-func (w *worker) addressesForChat(chatID int64) (addresses []address) {
+func (w *worker) usernamesForChat(chatID int64) (usernames []address) {
 	modelsQuery, err := w.db.Query(`
 		select username, muted from addresses
 		where chat_id=?
@@ -547,7 +627,7 @@ func (w *worker) addressesForChat(chatID int64) (addresses []address) {
 	for modelsQuery.Next() {
 		address := address{chatID: chatID}
 		checkErr(modelsQuery.Scan(&address.username, &address.muted))
-		addresses = append(addresses, address)
+		usernames = append(usernames, address)
 	}
 	return
 }
