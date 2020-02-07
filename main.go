@@ -309,7 +309,7 @@ func (w *worker) start(chatID int64, referrer string) {
 	referralLink := fmt.Sprintf("https://t.me/%s?start=%s", w.cfg.BotName, *externalID)
 	welcome := fmt.Sprintf("We created %d email addreses for you. An email sent to any of these addresses will appear here in the chat", len(usernames))
 	lines = append([]string{welcome}, lines...)
-	referralLine := fmt.Sprintf("\nEarn emails by sharing the referral link!\n%s\n\nYou will get %d emails for every new registered user\nNew user will get %d additional emails",
+	referralLine := fmt.Sprintf("\nEarn addresses by sharing the referral link!\n%s\n\nYou will get %d addresses for every new registered user\nNew user will get %d additional addresses",
 		referralLink,
 		w.cfg.ReferralBonus,
 		w.cfg.FollowerBonus)
@@ -603,7 +603,7 @@ func (w *worker) listAddresses(chatID int64) {
 		return
 	}
 	referralLink := fmt.Sprintf("https://t.me/%s?start=%s", w.cfg.BotName, *externalID)
-	referralLine := fmt.Sprintf("\nEarn emails by sharing the referral link!\n%s\n\nYou will get %d emails for every new registered user\nNew user will get %d additional emails",
+	referralLine := fmt.Sprintf("\nEarn addresses by sharing the referral link!\n%s\n\nYou will get %d addresses for every new registered user\nNew user will get %d additional addresses",
 		referralLink,
 		w.cfg.ReferralBonus,
 		w.cfg.FollowerBonus)
