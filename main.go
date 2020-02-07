@@ -381,6 +381,17 @@ func (w *worker) addUsername(arguments string) {
 	_ = w.sendText(w.cfg.AdminID, false, parseRaw, "OK")
 }
 
+func (w *worker) removeUser(arguments string) {
+	chatID, err := strconv.ParseInt(arguments, 10, 64)
+	if err != nil {
+		_ = w.sendText(w.cfg.AdminID, false, parseRaw, "Argument is invalid")
+		return
+	}
+	w.mustExec("delete from addresses where chat_id=?", chatID)
+	w.mustExec("delete from users where chat_id=?", chatID)
+	_ = w.sendText(w.cfg.AdminID, false, parseRaw, "OK")
+}
+
 func (w *worker) processAdminMessage(chatID int64, command, arguments string) bool {
 	switch command {
 	case "stat":
@@ -394,6 +405,9 @@ func (w *worker) processAdminMessage(chatID int64, command, arguments string) bo
 		return true
 	case "add_username":
 		w.addUsername(arguments)
+		return true
+	case "remove_user":
+		w.removeUser(arguments)
 		return true
 	}
 	return false
