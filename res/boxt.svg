@@ -16,9 +16,9 @@
    id="svg8"
    inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
    sodipodi:docname="boxt.svg"
-   inkscape:export-filename="/home/igor/projects/boxt/res/boxt1024x1024.png"
-   inkscape:export-xdpi="179.63142"
-   inkscape:export-ydpi="179.63142">
+   inkscape:export-filename="/home/igor/projects/boxt/res/boxt168x168.png"
+   inkscape:export-xdpi="29.470781"
+   inkscape:export-ydpi="29.470781">
   <defs
      id="defs2" />
   <sodipodi:namedview
@@ -28,9 +28,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.4142136"
-     inkscape:cx="165.50041"
-     inkscape:cy="199.80105"
+     inkscape:zoom="0.7071068"
+     inkscape:cx="474.18971"
+     inkscape:cy="506.36021"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -73,7 +73,7 @@
          sodipodi:nodetypes="ccccccccccsccsssccsss"
          inkscape:connector-curvature="0"
          id="path2292"
-         d="m 70.501888,222.54479 v 24.70805 h 5.14077 v -0.0238 -2.07739 -7.11791 -6.7107 -4.69325 -4.08503 z m 10.281026,6.10092 c -2.342137,0 -4.051104,0.76967 -5.287015,2.42259 v 5.21415 c 0.513879,-2.29096 2.065673,-3.6716 4.148581,-3.6716 2.533616,0 4.333071,2.1354 4.333071,5.52472 0,3.32152 -1.799455,5.45703 -4.333071,5.45703 -2.108739,0 -3.639907,-1.35411 -4.148581,-3.71863 v 5.49527 c 1.232812,1.41908 2.909816,2.18849 5.287015,2.18849 4.736756,0 8.335409,-3.69399 8.335409,-9.21855 0,-5.18564 -3.121305,-9.69347 -8.335409,-9.69347 z"
+         d="m 70.501888,222.54479 v 24.70805 h 5.14077 v -0.0238 -2.07739 -7.11791 -6.7107 -4.69325 -4.08503 z m 10.281026,6.10092 c -2.342137,0 -3.703839,0.45547 -5.287015,1.89342 v 5.21415 c 0.513879,-2.29096 2.065673,-3.14243 4.148581,-3.14243 2.533616,0 4.333071,2.1354 4.333071,5.52472 0,3.32152 -1.799455,5.45703 -4.333071,5.45703 -2.108739,0 -3.639907,-0.82494 -4.148581,-3.18946 v 5.49527 c 1.38164,1.31986 2.909816,1.65932 5.287015,1.65932 4.736756,0 8.335409,-3.69399 8.335409,-9.21855 0,-5.18564 -3.121305,-9.69347 -8.335409,-9.69347 z"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:35.27777863px;line-height:125%;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#c7152b;fill-opacity:1;stroke:none;stroke-width:0.2753928px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
       <path
          inkscape:connector-curvature="0"
