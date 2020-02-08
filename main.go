@@ -532,7 +532,11 @@ func (w *worker) referralLink(chatID int64) {
 		return
 	}
 	referralLink := fmt.Sprintf("https://t.me/%s?start=%s", w.cfg.BotName, *externalID)
-	_ = w.sendText(chatID, false, parseRaw, fmt.Sprintf("Your referral link is %s", referralLink))
+	referralLine := fmt.Sprintf("Your referral link is %s\nYou will get %d addresses for every new registered user\nNew user will get %d additional addresses",
+		referralLink,
+		w.cfg.ReferralBonus,
+		w.cfg.FollowerBonus)
+	_ = w.sendText(chatID, false, parseRaw, referralLine)
 }
 
 func (w *worker) userCount() int {
