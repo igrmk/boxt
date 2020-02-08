@@ -304,6 +304,10 @@ func (w *worker) start(chatID int64, referrer string) {
 			w.mustExec("insert into addresses (chat_id, username) values (?,?)", chatID, username)
 		}
 	}
+	if *externalID == referrer {
+		_ = w.sendText(chatID, false, parseRaw, "You've just hit your own referral link")
+		return
+	}
 	usernames := w.usernamesForChat(chatID)
 	lines := w.addressStrings(usernames)
 	referralLink := fmt.Sprintf("https://t.me/%s?start=%s", w.cfg.BotName, *externalID)
