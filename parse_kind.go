@@ -1,6 +1,5 @@
 package main
 
-//go:generate jsonenums -type=parseKind
 type parseKind int
 
 const (
