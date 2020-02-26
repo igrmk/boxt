@@ -25,7 +25,7 @@ type chatForUsernameArgs struct {
 }
 
 type deliverArgs struct {
-	result chan bool
+	result chan error
 	env    *env
 }
 
@@ -39,8 +39,8 @@ func (e *env) Close() error {
 		return err
 	}
 	e.mime = mime
-	if !e.deliver() {
-		return smtpd.SMTPError("450 mailbox unavailable")
+	if err := e.deliver(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -68,8 +68,8 @@ func (e *env) AddRecipient(rcpt smtpd.MailAddress) error {
 	return e.BasicEnvelope.AddRecipient(rcpt)
 }
 
-func (e *env) deliver() bool {
-	result := make(chan bool)
+func (e *env) deliver() error {
+	result := make(chan error)
 	defer close(result)
 	e.deliverCh <- deliverArgs{result: result, env: e}
 	return <-result

@@ -15,6 +15,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unicode/utf8"
 
 	tg "github.com/bcmk/telegram-bot-api"
 	"github.com/igrmk/go-smtpd/smtpd"
@@ -74,15 +75,29 @@ func splitAddress(a string) (string, string) {
 	return parts[0], parts[1]
 }
 
-func (w *worker) deliver(e *env) bool {
+func (w *worker) deliver(e *env) error {
 	messageID := e.mime.GetHeader("Message-ID")
 	if messageID == "" {
-		return false
+		return smtpd.SMTPError("501 Message-ID is not specified")
 	}
 
 	subject := e.mime.GetHeader("Subject")
 	from := e.mime.GetHeader("From")
 	to := e.mime.GetHeader("To")
+
+	if !utf8.ValidString(subject) {
+		return smtpd.SMTPError("501 Subject is invalid")
+	}
+	if !utf8.ValidString(from) {
+		return smtpd.SMTPError("501 From is invalid")
+	}
+	if !utf8.ValidString(to) {
+		return smtpd.SMTPError("501 To is invalid")
+	}
+	if !utf8.ValidString(e.mime.Text) {
+		return smtpd.SMTPError("501 message is invalid")
+	}
+
 	text := fmt.Sprintf("Subject: %s\nFrom: %s\nTo: %s\n\n%s", subject, from, to, e.mime.Text)
 
 	delivered := true
@@ -92,7 +107,10 @@ func (w *worker) deliver(e *env) bool {
 			delivered = w.deliverToChat(chatID, messageID, text, e) && delivered
 		}
 	}
-	return delivered
+	if !delivered {
+		return smtpd.SMTPError("450 mailbox unavailable")
+	}
+	return nil
 }
 
 func (w *worker) deliverToChat(chatID int64, messageID string, text string, e *env) bool {
@@ -702,7 +720,11 @@ func main() {
 	for {
 		select {
 		case m := <-deliverCh:
-			m.result <- w.deliver(m.env)
+			err := w.deliver(m.env)
+			if err != nil {
+				linf("delivery failed: %v", err)
+			}
+			m.result <- err
 		case u := <-chatForUsernameCh:
 			u.result <- w.chatForUsername(u)
 		case m := <-incoming:
