@@ -576,11 +576,22 @@ func (w *worker) emailCount() int {
 	return singleInt(query)
 }
 
+func (w *worker) addressCount() int {
+	query := w.db.QueryRow("select count(*) from addresses")
+	return singleInt(query)
+}
+
+func (w *worker) activeAddressCount() int {
+	query := w.db.QueryRow("select count(*) from addresses where muted=0")
+	return singleInt(query)
+}
+
 func (w *worker) stat() {
 	lines := []string{}
 	lines = append(lines, fmt.Sprintf("users: %d", w.userCount()))
 	lines = append(lines, fmt.Sprintf("active users: %d", w.activeUserCount()))
 	lines = append(lines, fmt.Sprintf("emails: %d", w.emailCount()))
+	lines = append(lines, fmt.Sprintf("addresses: %d/%d", w.activeAddressCount(), w.addressCount()))
 	_ = w.sendText(w.cfg.AdminID, false, parseRaw, strings.Join(lines, "\n"))
 }
 
