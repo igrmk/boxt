@@ -17,7 +17,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	tg "github.com/bcmk/telegram-bot-api"
+	tg "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/igrmk/go-smtpd/smtpd"
 	_ "github.com/mattn/go-sqlite3"
 )

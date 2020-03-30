@@ -1,6 +1,6 @@
 package main
 
-import tg "github.com/bcmk/telegram-bot-api"
+import tg "github.com/go-telegram-bot-api/telegram-bot-api"
 
 type baseChattable interface {
 	tg.Chattable
