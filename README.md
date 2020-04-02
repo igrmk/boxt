@@ -18,4 +18,12 @@ Commands
 * __unmute__ _your_boxt_email_ — Unmute specified boxt email address
 * __feedback__ _text_ — Send feedback
 
+
+Privacy policy
+--------------
+
+We do not store your email messages on our servers.
+Email messasges are forwarded to Telegram immediately after receiving.
+We store only your Telegram chat ID and your email addresses.
+
 <a href="https://www.buymeacoffee.com/J3b15eI" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee"></a>
