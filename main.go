@@ -113,9 +113,26 @@ func (w *worker) deliver(e *env) error {
 	return nil
 }
 
+func chunks(s string, chunkSize int) []string {
+	if len(s) == 0 {
+		return nil
+	}
+	runes := []rune(s)
+	n := (len(runes) + chunkSize - 1) / chunkSize
+	chunks := make([]string, n)
+	for i := 0; i < n-1; i++ {
+		chunks[i] = string(runes[i*chunkSize : (i+1)*chunkSize])
+	}
+	chunks[n-1] = string(runes[(n-1)*chunkSize : len(runes)])
+	return chunks
+}
+
 func (w *worker) deliverToChat(chatID int64, messageID string, text string, e *env) bool {
-	if w.sendText(chatID, true, parseRaw, text) != nil {
-		return false
+	chunks := chunks(text, w.cfg.MaxTextChunkSize)
+	for _, c := range chunks {
+		if w.sendText(chatID, true, parseRaw, c) != nil {
+			return false
+		}
 	}
 	for _, inline := range e.mime.Inlines {
 		b := tg.FileBytes{Name: inline.FileName, Bytes: inline.Content}
