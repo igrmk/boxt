@@ -113,18 +113,29 @@ func (w *worker) deliver(e *env) error {
 	return nil
 }
 
-func chunks(s string, chunkSize int) []string {
+func chunks(s string, chunkSize int) (chunks []string) {
 	if len(s) == 0 {
 		return nil
 	}
 	runes := []rune(s)
-	n := (len(runes) + chunkSize - 1) / chunkSize
-	chunks := make([]string, n)
-	for i := 0; i < n-1; i++ {
-		chunks[i] = string(runes[i*chunkSize : (i+1)*chunkSize])
+	i := 0
+	for i < len(runes)-chunkSize {
+		eol := i + chunkSize
+		for ; eol > i; eol-- {
+			if runes[eol] == '\n' {
+				break
+			}
+		}
+		if eol == i {
+			chunks = append(chunks, string(runes[i:i+chunkSize]))
+			i += chunkSize
+		} else {
+			chunks = append(chunks, string(runes[i:eol]))
+			i = eol + 1
+		}
 	}
-	chunks[n-1] = string(runes[(n-1)*chunkSize : len(runes)])
-	return chunks
+	chunks = append(chunks, string(runes[i:len(runes)]))
+	return
 }
 
 func (w *worker) deliverToChat(chatID int64, messageID string, text string, e *env) bool {
