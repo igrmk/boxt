@@ -3,12 +3,12 @@
 [![Build Status](https://travis-ci.org/igrmk/boxt.png)](https://travis-ci.org/igrmk/boxt)
 [![GoReportCard](http://goreportcard.com/badge/igrmk/boxt)](http://goreportcard.com/report/igrmk/boxt)
 
-We create email addresses for you. An email sent to any of these addresses will appear in your telegram chat.
+We create email addresses for you. An email sent to any of these addresses will appear in your Telegram chat.
 
 Installation
 ------------
 
-Just open this link in telegram https://t.me/BoxtBot
+Just open this link in Telegram https://t.me/BoxtBot
 
 Commands
 --------
