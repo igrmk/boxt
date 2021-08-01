@@ -1,7 +1,7 @@
 ![](res/boxt168x168.png)
 
 [![Build Status](https://travis-ci.org/igrmk/boxt.png)](https://travis-ci.org/igrmk/boxt)
-[![GoReportCard](http://goreportcard.com/badge/igrmk/boxt)](http://goreportcard.com/report/igrmk/boxt)
+[![GoReportCard](https://goreportcard.com/badge/igrmk/boxt)](https://goreportcard.com/report/igrmk/boxt)
 
 We create email addresses for you. An email sent to any of these addresses will appear in your Telegram chat.
 
