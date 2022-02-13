@@ -630,7 +630,7 @@ func (w *worker) sendText(chatID int64, notify bool, parse parseKind, text strin
 func (w *worker) send(msg baseChattable) error {
 	if _, err := w.bot.Send(msg); err != nil {
 		switch err := err.(type) {
-		case tg.Error:
+		case *tg.Error:
 			lerr("cannot send a message to %d, %v", msg.baseChat().ChatID, err)
 			if err.Code == 403 {
 				nextDelivery := time.Now().Unix() + int64(w.cfg.BlockedBackoffSeconds)
