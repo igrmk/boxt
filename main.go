@@ -326,6 +326,7 @@ func (w *worker) chatForExternalID(externalID string) *int64 {
 }
 
 func (w *worker) start(chatID int64, referrer string) {
+	w.mustExec("update addresses set next_delivery=0 where chat_id=?", chatID)
 	externalID := w.externalID(chatID)
 	if externalID == nil {
 		referOK := false
