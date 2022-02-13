@@ -17,7 +17,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	tg "github.com/go-telegram-bot-api/telegram-bot-api"
+	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/igrmk/go-smtpd/smtpd"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -45,7 +45,7 @@ func newWorker() *worker {
 	tls, err := loadTLS(cfg.Certificate, cfg.CertificateKey)
 	checkErr(err)
 	client := &http.Client{Timeout: time.Second * time.Duration(cfg.TimeoutSeconds)}
-	bot, err := tg.NewBotAPIWithClient(cfg.BotToken, client)
+	bot, err := tg.NewBotAPIWithClient(cfg.BotToken, tg.APIEndpoint, client)
 	checkErr(err)
 	db, err := sql.Open("sqlite3", cfg.DBPath)
 	checkErr(err)
@@ -61,10 +61,14 @@ func newWorker() *worker {
 }
 
 type address struct {
-	chatID   int64
-	username string
-	muted    bool
+	chatID       int64
+	username     string
+	muted        bool
+	nextDelivery int64
 }
+
+var errorMuted = errors.New("Mailbox is muted")
+var errorTooManyEmails = errors.New("Too many emails")
 
 func splitAddress(a string) (string, string) {
 	a = strings.ToLower(a)
@@ -134,7 +138,7 @@ func chunks(s string, chunkSize int) (chunks []string) {
 			i = eol + 1
 		}
 	}
-	chunks = append(chunks, string(runes[i:len(runes)]))
+	chunks = append(chunks, string(runes[i:]))
 	return
 }
 
@@ -149,22 +153,22 @@ func (w *worker) deliverToChat(chatID int64, messageID string, text string, e *e
 		b := tg.FileBytes{Name: inline.FileName, Bytes: inline.Content}
 		switch {
 		case strings.HasPrefix(inline.ContentType, "image/"):
-			msg := tg.NewPhotoUpload(chatID, b)
+			msg := tg.NewPhoto(chatID, b)
 			if w.send(&photoConfig{msg}) != nil {
 				return false
 			}
 		case strings.HasPrefix(inline.ContentType, "video/"):
-			msg := tg.NewVideoUpload(chatID, b)
+			msg := tg.NewVideo(chatID, b)
 			if w.send(&videoConfig{msg}) != nil {
 				return false
 			}
 		case strings.HasPrefix(inline.ContentType, "audio/"):
-			msg := tg.NewAudioUpload(chatID, b)
+			msg := tg.NewAudio(chatID, b)
 			if w.send(&audioConfig{msg}) != nil {
 				return false
 			}
 		default:
-			msg := tg.NewDocumentUpload(chatID, b)
+			msg := tg.NewDocument(chatID, b)
 			if w.send(&documentConfig{msg}) != nil {
 				return false
 			}
@@ -172,7 +176,7 @@ func (w *worker) deliverToChat(chatID int64, messageID string, text string, e *e
 	}
 	for _, inline := range e.mime.Attachments {
 		b := tg.FileBytes{Name: inline.FileName, Bytes: inline.Content}
-		msg := tg.NewDocumentUpload(chatID, b)
+		msg := tg.NewDocument(chatID, b)
 		if w.send(&documentConfig{msg}) != nil {
 			return false
 		}
@@ -181,12 +185,21 @@ func (w *worker) deliverToChat(chatID int64, messageID string, text string, e *e
 	return true
 }
 
-func (w *worker) chatForUsername(u chatForUsernameArgs) *int64 {
+func (w *worker) chatForUsername(u chatForUsernameArgs) (int64, error) {
 	address := w.addressForUsername(u.username)
 	if address == nil || address.muted {
-		return nil
+		return 0, errorMuted
 	}
-	return &address.chatID
+	now := time.Now().Unix()
+	if address.nextDelivery > now {
+		return 0, errorTooManyEmails
+	}
+	address.nextDelivery += int64(w.cfg.LimitIntervalSeconds)
+	if now-int64(w.cfg.LimitWindowSeconds) > address.nextDelivery {
+		address.nextDelivery = now - int64(w.cfg.LimitWindowSeconds)
+	}
+	w.mustExec("update addresses set next_delivery=? where username=?", address.nextDelivery, u.username)
+	return address.chatID, nil
 }
 
 func envelopeFactory(deliverCh chan deliverArgs, chatForUsernameCh chan chatForUsernameArgs, host string, maxSize int) func(smtpd.Connection, smtpd.MailAddress, *int) (smtpd.Envelope, error) {
@@ -214,7 +227,9 @@ func (w *worker) logConfig() {
 
 func (w *worker) setWebhook() {
 	linf("setting webhook...")
-	_, err := w.bot.SetWebhook(tg.NewWebhook(path.Join(w.cfg.Host, w.cfg.ListenPath)))
+	wh, err := tg.NewWebhook(path.Join(w.cfg.Host, w.cfg.ListenPath))
+	checkErr(err)
+	_, err = w.bot.Request(wh)
 	checkErr(err)
 	info, err := w.bot.GetWebhookInfo()
 	checkErr(err)
@@ -229,7 +244,7 @@ func (w *worker) setWebhook() {
 
 func (w *worker) removeWebhook() {
 	linf("removing webhook...")
-	_, err := w.bot.RemoveWebhook()
+	_, err := w.bot.Request(tg.DeleteWebhookConfig{})
 	checkErr(err)
 	linf("OK")
 }
@@ -240,27 +255,6 @@ func (w *worker) mustExec(query string, args ...interface{}) {
 	_, err = stmt.Exec(args...)
 	checkErr(err)
 	stmt.Close()
-}
-
-func (w *worker) createDatabase() {
-	linf("creating database if needed...")
-	w.mustExec(`
-		create table if not exists feedback (
-			chat_id integer,
-			text text);`)
-	w.mustExec(`
-		create table if not exists users (
-			chat_id integer primary key,
-			external_id text not null default '');`)
-	w.mustExec(`
-		create table if not exists addresses (
-			chat_id integer,
-			username text not null default '',
-			muted integer not null default 0);`)
-	w.mustExec(`
-		create table if not exists delivered_ids (
-			chat_id integer,
-			message_id text not null default '')`)
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyz"
@@ -501,9 +495,9 @@ func (w *worker) ourID() int64 {
 
 func (w *worker) processTGUpdate(u tg.Update) {
 	if u.Message != nil && u.Message.Chat != nil {
-		if newMembers := u.Message.NewChatMembers; newMembers != nil && len(*newMembers) > 0 {
+		if newMembers := u.Message.NewChatMembers; len(newMembers) > 0 {
 			ourID := w.ourID()
-			for _, m := range *newMembers {
+			for _, m := range newMembers {
 				if int64(m.ID) == ourID {
 					w.start(u.Message.Chat.ID, "")
 					break
@@ -638,6 +632,14 @@ func (w *worker) send(msg baseChattable) error {
 		switch err := err.(type) {
 		case tg.Error:
 			lerr("cannot send a message to %d, %v", msg.baseChat().ChatID, err)
+			if err.Code == 403 {
+				nextDelivery := time.Now().Unix() + int64(w.cfg.BlockedBackoffSeconds)
+				w.mustExec(
+					"update addresses set next_delivery=? where next_delivery<? and chat_id=?",
+					nextDelivery,
+					nextDelivery,
+					msg.baseChat().ChatID)
+			}
 		default:
 			lerr("unexpected error type while sending a message to %d, %v", msg.baseChat().ChatID, err)
 		}
@@ -692,14 +694,14 @@ func (w *worker) listAddresses(chatID int64) {
 
 func (w *worker) addressForUsername(username string) *address {
 	modelsQuery, err := w.db.Query(`
-		select chat_id, muted from addresses
+		select chat_id, muted, next_delivery from addresses
 		where username=?`,
 		username)
 	checkErr(err)
 	defer modelsQuery.Close()
 	if modelsQuery.Next() {
 		address := address{username: username}
-		checkErr(modelsQuery.Scan(&address.chatID, &address.muted))
+		checkErr(modelsQuery.Scan(&address.chatID, &address.muted, &address.nextDelivery))
 		return &address
 	}
 	return nil
@@ -766,7 +768,8 @@ func main() {
 			}
 			m.result <- err
 		case u := <-chatForUsernameCh:
-			u.result <- w.chatForUsername(u)
+			chatID, err := w.chatForUsername(u)
+			u.result <- chatForUsernameResult{chatID: chatID, err: err}
 		case m := <-incoming:
 			w.processTGUpdate(m)
 		case s := <-signals:

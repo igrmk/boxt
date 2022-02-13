@@ -9,24 +9,27 @@ import (
 )
 
 type config struct {
-	BotName          string `json:"bot_name"`            // the name of the bot
-	MailAddress      string `json:"mail_address"`        // the address to listen to incoming mail
-	MaxSize          int    `json:"max_size"`            // the maximum email size in bytes
-	MaxTextChunkSize int    `json:"max_text_chunk_size"` // the maximum text chunk size
-	ListenPath       string `json:"listen_path"`         // the path excluding domain to listen to, the good choice is "/your-telegram-bot-token"
-	ListenAddress    string `json:"listen_address"`      // the address to listen to incoming telegram messages
-	Host             string `json:"host"`                // the host name for the email addresses and the webhook
-	BotToken         string `json:"bot_token"`           // your telegram bot token
-	FreeEmails       int    `json:"free_emails"`         // number of free emails on first start
-	ReferralBonus    int    `json:"referral_bonus"`      // number of emails for a referrer
-	FollowerBonus    int    `json:"follower_bonus"`      // number of emails for a new user registered by a referral link
-	TimeoutSeconds   int    `json:"timeout_seconds"`     // HTTP timeout
-	AdminID          int64  `json:"admin_id"`            // admin telegram ID
-	DBPath           string `json:"db_path"`             // path to the database
-	Debug            bool   `json:"debug"`               // debug mode
-	StatPassword     string `json:"stat_password"`       // password for statistics
-	Certificate      string `json:"certificate"`         // certificate path for STARTTLS
-	CertificateKey   string `json:"certificate_key"`     // certificate key path for STARTTLS
+	BotName               string `json:"bot_name"`                // the name of the bot
+	MailAddress           string `json:"mail_address"`            // the address to listen to incoming mail
+	MaxSize               int    `json:"max_size"`                // the maximum email size in bytes
+	MaxTextChunkSize      int    `json:"max_text_chunk_size"`     // the maximum text chunk size
+	ListenPath            string `json:"listen_path"`             // the path excluding domain to listen to, the good choice is "/your-telegram-bot-token"
+	ListenAddress         string `json:"listen_address"`          // the address to listen to incoming telegram messages
+	Host                  string `json:"host"`                    // the host name for the email addresses and the webhook
+	BotToken              string `json:"bot_token"`               // your telegram bot token
+	FreeEmails            int    `json:"free_emails"`             // number of free emails on first start
+	ReferralBonus         int    `json:"referral_bonus"`          // number of emails for a referrer
+	FollowerBonus         int    `json:"follower_bonus"`          // number of emails for a new user registered by a referral link
+	TimeoutSeconds        int    `json:"timeout_seconds"`         // HTTP timeout
+	AdminID               int64  `json:"admin_id"`                // admin telegram ID
+	DBPath                string `json:"db_path"`                 // path to the database
+	Debug                 bool   `json:"debug"`                   // debug mode
+	StatPassword          string `json:"stat_password"`           // password for statistics
+	Certificate           string `json:"certificate"`             // certificate path for STARTTLS
+	CertificateKey        string `json:"certificate_key"`         // certificate key path for STARTTLS
+	LimitIntervalSeconds  int    `json:"limit_interval_seconds"`  // the limit interval
+	LimitWindowSeconds    int    `json:"limit_window_seconds"`    // the limit window
+	BlockedBackoffSeconds int    `json:"blocked_backoff_seconds"` // a backoff if user blocked the bot
 }
 
 func readConfig(path string) *config {
@@ -94,6 +97,15 @@ func checkConfig(cfg *config) error {
 	}
 	if cfg.CertificateKey == "" {
 		return errors.New("configure certificate_key")
+	}
+	if cfg.LimitIntervalSeconds == 0 {
+		return errors.New("configure limit_interval_seconds")
+	}
+	if cfg.LimitWindowSeconds == 0 {
+		return errors.New("configure limit_window_seconds")
+	}
+	if cfg.BlockedBackoffSeconds == 0 {
+		return errors.New("configure blocked_backoff_seconds")
 	}
 	return nil
 }

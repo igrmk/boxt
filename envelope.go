@@ -19,8 +19,13 @@ type env struct {
 	maxSize           int
 }
 
+type chatForUsernameResult struct {
+	chatID int64
+	err    error
+}
+
 type chatForUsernameArgs struct {
-	result   chan *int64
+	result   chan chatForUsernameResult
 	username string
 }
 
@@ -60,11 +65,14 @@ func (e *env) AddRecipient(rcpt smtpd.MailAddress) error {
 	if host != e.host {
 		return smtpd.SMTPError("550 bad recipient")
 	}
-	chatID := e.chatForUsername(username)
-	if chatID == nil {
+	chatID, err := e.chatForUsername(username)
+	if err == errorMuted {
 		return smtpd.SMTPError("550 bad recipient")
 	}
-	e.chatIDs[*chatID] = true
+	if err == errorTooManyEmails {
+		return smtpd.SMTPError("452 too many emails")
+	}
+	e.chatIDs[chatID] = true
 	return e.BasicEnvelope.AddRecipient(rcpt)
 }
 
@@ -75,9 +83,10 @@ func (e *env) deliver() error {
 	return <-result
 }
 
-func (e *env) chatForUsername(username string) *int64 {
-	result := make(chan *int64)
-	defer close(result)
-	e.chatForUsernameCh <- chatForUsernameArgs{result: result, username: username}
-	return <-result
+func (e *env) chatForUsername(username string) (int64, error) {
+	resultCh := make(chan chatForUsernameResult)
+	defer close(resultCh)
+	e.chatForUsernameCh <- chatForUsernameArgs{result: resultCh, username: username}
+	result := <-resultCh
+	return result.chatID, result.err
 }
